@@ -433,13 +433,13 @@
                                 <div className={`p-4 rounded-xl border-l-4 ${breakEvenMonth <= 6 ? 'bg-amber-50 border-amber-400 text-amber-900' : 'bg-emerald-50 border-emerald-500 text-emerald-900'}`}>
                                     <h4 className="font-bold text-sm mb-1">
                                         {breakEvenMonth <= 0 
-                                            ? "Inflation is IMMEDIATELY Costlier" 
+                                            ? "Forex is IMMEDIATELY Cheaper" 
                                             : `Intersection at ~${breakEvenMonth.toFixed(1)} Months`}
                                     </h4>
                                     <p className="text-xs opacity-90">
                                         {breakEvenMonth <= 0 
                                             ? "Because the Floor Price protects the Forex tariff, any inflation instantly makes the Inflation Option more expensive."
-                                            : `The Forex option remains cheaper for the first ${(breakEvenMonth/12).toFixed(1)} years.`}
+                                            : `Inflation is cheaper for the first ${(breakEvenMonth/12).toFixed(1)} years. Forex becomes advantageous afterwards as it stays fixed.`}
                                     </p>
                                 </div>
                             </Card>
