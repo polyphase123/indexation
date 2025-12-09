@@ -27,17 +27,16 @@
 
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        .table-container::-webkit-scrollbar { height: 8px; width: 8px; }
-        .table-container::-webkit-scrollbar-track { background: #f1f5f9; }
-        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Sticky Column Styling */
-        .sticky-col { position: sticky; left: 0; z-index: 20; }
-        .sticky-col::after {
-            content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 4px;
-            background: linear-gradient(to right, rgba(0,0,0,0.05), transparent);
-            pointer-events: none;
+        /* Compact Table Styling for Laptop View */
+        .compact-table th, .compact-table td {
+            padding: 4px 2px;
+            font-size: 11px;
+        }
+        @media (min-width: 1024px) {
+            .compact-table th, .compact-table td {
+                font-size: 10px; /* Squeeze slightly for denser info */
+            }
         }
     </style>
 </head>
@@ -75,11 +74,11 @@
             Grid: ({ size = 20, className = "" }) => (
                 <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             ),
-            CheckCircle: ({ size = 20, className = "" }) => (
-                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Book: ({ size = 20, className = "" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
             ),
-            XCircle: ({ size = 20, className = "" }) => (
-                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>
+            Globe: ({ size = 20, className = "" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             )
         };
 
@@ -93,17 +92,17 @@
         };
 
         const KEY_RATES = [
-            { val: 54.00, label: "Strong Peso", source: "Scenario 3", type: "scenario" },
+            { val: 54.00, label: "Scenario 3", source: "Scenario 3", type: "scenario" },
             { val: 56.00, label: "DBCC Low", source: "NEDA", type: "neda" },
             { val: 56.50, label: "Hist. '24", source: "Bloomberg", type: "bloomberg" },
             { val: 57.00, label: "DBCC Mid", source: "NEDA", type: "neda" },
             { val: 57.45, label: "BSP Avg", source: "BSP Fwd", type: "bsp" },
-            { val: 57.80, label: "2025 F'cast", source: "Bloomberg", type: "bloomberg" },
+            { val: 57.80, label: "25 F'cast", source: "Bloomberg", type: "bloomberg" },
             { val: 58.00, label: "DBCC High", source: "NEDA", type: "neda" },
             { val: 58.50, label: "Base Rate", source: "Official", type: "base" },
-            { val: 59.80, label: "2031 F'cast", source: "Bloomberg", type: "bloomberg" },
-            { val: 61.20, label: "2032 F'cast", source: "Bloomberg", type: "bloomberg" },
-            { val: 62.00, label: "Weak Peso", source: "Scenario 2", type: "scenario" }
+            { val: 59.80, label: "31 F'cast", source: "Bloomberg", type: "bloomberg" },
+            { val: 61.20, label: "32 F'cast", source: "Bloomberg", type: "bloomberg" },
+            { val: 62.00, label: "Scenario 2", source: "Scenario 2", type: "scenario" }
         ];
 
         // --- 4. SUB-COMPONENTS ---
@@ -148,7 +147,50 @@
             </div>
         );
 
-        // --- 5. HEAT MAP COMPONENTS ---
+        // --- 5. REFERENCE & DEFINITIONS ---
+        
+        const ReferenceSection = () => (
+            <div className="mt-8">
+                <Card className="p-6">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                        <Icons.Book size={18} className="text-blue-600" />
+                        Data Sources & Definitions
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                        <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
+                            <h4 className="font-bold text-emerald-800 mb-1 flex items-center gap-1">
+                                <Icons.Globe size={12}/> DBCC / NEDA
+                            </h4>
+                            <p className="text-emerald-700 mb-2">Development Budget Coordination Committee under NEDA. Sets official macroeconomic assumptions for the Philippine budget.</p>
+                            <a href="https://www.neda.gov.ph" target="_blank" className="text-blue-600 hover:underline">neda.gov.ph</a>
+                        </div>
+                        <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-lg">
+                            <h4 className="font-bold text-indigo-800 mb-1 flex items-center gap-1">
+                                <Icons.Globe size={12}/> BSP
+                            </h4>
+                            <p className="text-indigo-700 mb-2">Bangko Sentral ng Pilipinas. Central bank providing forward exchange rate estimates used in the GEAR5 document.</p>
+                            <a href="https://www.bsp.gov.ph" target="_blank" className="text-blue-600 hover:underline">bsp.gov.ph</a>
+                        </div>
+                        <div className="p-3 bg-fuchsia-50 border border-fuchsia-100 rounded-lg">
+                            <h4 className="font-bold text-fuchsia-800 mb-1 flex items-center gap-1">
+                                <Icons.Globe size={12}/> Bloomberg
+                            </h4>
+                            <p className="text-fuchsia-700 mb-2">Global financial data provider. Reference for market consensus forecasts and historical averages (e.g., 2024 avg ~56.50).</p>
+                            <a href="https://www.bloomberg.com/markets/currencies" target="_blank" className="text-blue-600 hover:underline">bloomberg.com</a>
+                        </div>
+                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                            <h4 className="font-bold text-slate-800 mb-1">Scenario Notes</h4>
+                            <p className="text-slate-600">
+                                <strong>Floor Price:</strong> Active when FX &lt; 58.50.<br/>
+                                <strong>Comparison:</strong> Forex adjustment is one-time; Inflation is continuous over delay duration.
+                            </p>
+                        </div>
+                    </div>
+                </Card>
+            </div>
+        );
+
+        // --- 6. HEAT MAP COMPONENTS ---
 
         const HeatMapBase = ({ title, columns, bidRows, getCellData, legend }) => (
             <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
@@ -162,18 +204,19 @@
                     </div>
                 </div>
                 
-                <div className="table-container overflow-x-auto pb-2">
-                    <table className="w-full text-right border-collapse text-xs whitespace-nowrap">
+                {/* No horizontal scroll - compact layout */}
+                <div className="w-full">
+                    <table className="w-full text-right border-collapse compact-table">
                         <thead>
                             <tr>
-                                <th className="sticky-col p-3 text-left bg-slate-100 font-semibold text-slate-600 border-b border-slate-200 min-w-[120px] shadow-sm">
-                                    Bid Price (₱) →
+                                <th className="p-2 text-left bg-slate-100 font-semibold text-slate-600 border-b border-slate-200 w-24">
+                                    Bid (₱)
                                 </th>
                                 {columns.map((col, idx) => (
-                                    <th key={idx} className={`p-2 border-b border-slate-200 min-w-[70px] ${col.headerClass || 'bg-slate-50 text-slate-500 font-medium'}`}>
-                                        <div className="flex flex-col items-center">
+                                    <th key={idx} className={`p-1 border-b border-slate-200 ${col.headerClass || 'bg-slate-50 text-slate-500 font-medium'}`}>
+                                        <div className="flex flex-col items-center justify-center">
                                             <span>{col.label}</span>
-                                            {col.subLabel && <span className="text-[9px] opacity-75 whitespace-nowrap mt-0.5">{col.subLabel}</span>}
+                                            {col.subLabel && <span className="text-[8px] opacity-75 whitespace-nowrap leading-none mt-0.5">{col.subLabel}</span>}
                                         </div>
                                     </th>
                                 ))}
@@ -182,13 +225,13 @@
                         <tbody>
                             {bidRows.map((bid) => (
                                 <tr key={bid} className="hover:bg-slate-50 group">
-                                    <td className={`sticky-col p-3 text-left font-bold text-slate-700 border-b border-slate-100 group-hover:bg-slate-50 ${bid === CONSTANTS.PRELIMINARY_GEAR_PRICE ? 'bg-emerald-50 text-emerald-800' : 'bg-white'}`}>
+                                    <td className={`p-2 text-left font-bold text-slate-700 border-b border-slate-100 group-hover:bg-slate-50 ${bid === CONSTANTS.PRELIMINARY_GEAR_PRICE ? 'bg-emerald-50 text-emerald-800' : 'bg-white'}`}>
                                         {bid.toFixed(4)}
                                     </td>
                                     {columns.map((col, idx) => {
                                         const { value, bgClass, textClass } = getCellData(bid, col.val);
                                         return (
-                                            <td key={idx} className={`p-2 border-b border-slate-100 ${bgClass} ${textClass}`}>
+                                            <td key={idx} className={`p-1 border-b border-slate-100 ${bgClass} ${textClass} text-center`}>
                                                 {value}
                                             </td>
                                         );
@@ -202,17 +245,21 @@
         );
 
         const ForexHeatMap = ({ calculateTariff }) => {
-            const bidRows = [8.00, 8.50, 9.00, 9.50, 10.00, 10.25, CONSTANTS.PRELIMINARY_GEAR_PRICE];
+            const bidRows = [8.00, 8.50, 9.00, 9.50, 10.00, CONSTANTS.PRELIMINARY_GEAR_PRICE];
 
             const columns = useMemo(() => {
                 const cols = new Set();
+                // Add Integers 54 to 63
                 for (let fx = 54.00; fx <= 63.00; fx += 1.00) cols.add(fx);
+                // Add Key Rates
                 KEY_RATES.forEach(r => cols.add(r.val));
                 
                 return Array.from(cols).sort((a, b) => a - b).map(fx => {
                     const special = KEY_RATES.find(r => Math.abs(r.val - fx) < 0.001);
                     let headerClass = "bg-slate-50 text-slate-500 font-medium";
-                    
+                    let label = fx.toFixed(special ? 2 : 0); // Remove decimals for integers to save space if not special
+                    if(special) label = fx.toFixed(2);
+
                     if (special) {
                         switch(special.type) {
                             case 'base': headerClass = "bg-yellow-50 text-yellow-700 font-bold border-yellow-200 border-b-2"; break;
@@ -222,7 +269,7 @@
                             default: headerClass = "bg-slate-100 text-slate-600 font-semibold";
                         }
                     }
-                    return { val: fx, label: fx.toFixed(2), subLabel: special?.label, headerClass, type: special?.type };
+                    return { val: fx, label, subLabel: special?.label, headerClass, type: special?.type };
                 });
             }, []);
 
@@ -266,7 +313,7 @@
         };
 
         const InflationHeatMap = ({ calculateTariff, inflationRate }) => {
-            const bidRows = [8.00, 8.50, 9.00, 9.50, 10.00, 10.25, CONSTANTS.PRELIMINARY_GEAR_PRICE];
+            const bidRows = [8.00, 8.50, 9.00, 9.50, 10.00, CONSTANTS.PRELIMINARY_GEAR_PRICE];
             
             const columns = [6, 12, 18, 24, 30, 36, 42, 48, 54, 60].map(m => ({
                 val: m,
@@ -299,7 +346,7 @@
             return <HeatMapBase title={`Inflation Delay Matrix (Bid vs Months)`} columns={columns} bidRows={bidRows} getCellData={getCellData} legend={legend} />;
         };
 
-        // --- 6. COMPARISON PANEL ---
+        // --- 7. COMPARISON PANEL ---
         
         const ComparisonPanel = ({ bidPrice, calculateForex, calculateInflation }) => {
             const [scenarioFx, setScenarioFx] = useState(56.00); 
@@ -442,7 +489,7 @@
             );
         };
 
-        // --- 7. MAIN APPLICATION ---
+        // --- 8. MAIN APPLICATION ---
 
         function IndexationSimulator() {
             const [activeTab, setActiveTab] = useState('forex'); 
@@ -653,6 +700,9 @@
                         {activeTab === 'inflation' && (
                             <InflationHeatMap calculateTariff={calculateInflationTariff} inflationRate={inflationRate} />
                         )}
+
+                        {/* References Section */}
+                        <ReferenceSection />
 
                         <div className="text-center text-xs text-slate-400 pt-8 pb-4">
                             <p>Based on "Proposed Preliminary Green Energy Auction Reserve Price for Round 5 (GEAR5)" Document.</p>
