@@ -30,13 +30,23 @@
         
         /* Compact Table Styling for Laptop View */
         .compact-table th, .compact-table td {
-            padding: 4px 2px;
+            padding: 6px 4px; /* Increased padding slightly for breathability */
             font-size: 11px;
+            text-align: center;
+        }
+        .compact-table th:first-child, .compact-table td:first-child {
+            text-align: left;
+            padding-left: 12px;
         }
         @media (min-width: 1024px) {
             .compact-table th, .compact-table td {
-                font-size: 10px; /* Squeeze slightly for denser info */
+                font-size: 11px; 
             }
+        }
+        
+        /* Table Container Tweaks */
+        .table-container {
+            border-radius: 0 0 12px 12px;
         }
     </style>
 </head>
@@ -205,15 +215,15 @@
                 </div>
                 
                 {/* No horizontal scroll - compact layout */}
-                <div className="w-full">
+                <div className="w-full table-container">
                     <table className="w-full text-right border-collapse compact-table">
                         <thead>
                             <tr>
-                                <th className="p-2 text-left bg-slate-100 font-semibold text-slate-600 border-b border-slate-200 w-24">
+                                <th className="bg-slate-100 font-semibold text-slate-600 border-b border-slate-200 w-24">
                                     Bid (₱)
                                 </th>
                                 {columns.map((col, idx) => (
-                                    <th key={idx} className={`p-1 border-b border-slate-200 ${col.headerClass || 'bg-slate-50 text-slate-500 font-medium'}`}>
+                                    <th key={idx} className={`border-b border-slate-200 ${col.headerClass || 'bg-slate-50 text-slate-500 font-medium'}`}>
                                         <div className="flex flex-col items-center justify-center">
                                             <span>{col.label}</span>
                                             {col.subLabel && <span className="text-[8px] opacity-75 whitespace-nowrap leading-none mt-0.5">{col.subLabel}</span>}
@@ -225,13 +235,13 @@
                         <tbody>
                             {bidRows.map((bid) => (
                                 <tr key={bid} className="hover:bg-slate-50 group">
-                                    <td className={`p-2 text-left font-bold text-slate-700 border-b border-slate-100 group-hover:bg-slate-50 ${bid === CONSTANTS.PRELIMINARY_GEAR_PRICE ? 'bg-emerald-50 text-emerald-800' : 'bg-white'}`}>
+                                    <td className={`font-bold text-slate-700 border-b border-slate-100 group-hover:bg-slate-50 ${bid === CONSTANTS.PRELIMINARY_GEAR_PRICE ? 'bg-emerald-50 text-emerald-800' : 'bg-white'}`}>
                                         {bid.toFixed(4)}
                                     </td>
                                     {columns.map((col, idx) => {
                                         const { value, bgClass, textClass } = getCellData(bid, col.val);
                                         return (
-                                            <td key={idx} className={`p-1 border-b border-slate-100 ${bgClass} ${textClass} text-center`}>
+                                            <td key={idx} className={`border-b border-slate-100 ${bgClass} ${textClass}`}>
                                                 {value}
                                             </td>
                                         );
@@ -444,7 +454,7 @@
                                 </div>
                                 <div className="flex-1 min-h-0">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+                                        <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 30 }}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                             <XAxis 
                                                 dataKey="month" 
@@ -671,7 +681,7 @@
                                         {/* Main Chart Guard */}
                                         {canRenderMainChart ? (
                                             <ResponsiveContainer width="100%" height="100%">
-                                                <AreaChart data={currentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                <AreaChart data={currentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 30 }}>
                                                     <defs>
                                                         <linearGradient id="colorTariff" x1="0" y1="0" x2="0" y2="1">
                                                             <stop offset="5%" stopColor={activeTab === 'forex' ? "#2563eb" : "#9333ea"} stopOpacity={0.1}/>
