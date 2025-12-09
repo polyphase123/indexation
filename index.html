@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GEAR5 Green Energy Auction Reserve Price Indexation Simulator">
+    <title>GEAR5 Indexation Simulator</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    
+    <!-- PropTypes (Required for Recharts UMD) -->
+    <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+    
+    <!-- Recharts -->
+    <script crossorigin src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .table-container::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #f1f5f9; }
+        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Sticky Column Styling */
+        .sticky-col { position: sticky; left: 0; z-index: 20; }
+        .sticky-col::after {
+            content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 4px;
+            background: linear-gradient(to right, rgba(0,0,0,0.05), transparent);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- 1. SETUP & UTILITIES ---
+        const { useState, useMemo, useEffect } = React;
+
+        // --- 2. ICONS ---
+        const Icons = {
+            Calculator: ({ size = 20, className = "" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+            ),
+            TrendingUp: ({ size = 20, className = "" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            ),
+            DollarSign: ({ size = 20, className = "" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" x2="12" y1="1" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            ),
+            Scale: ({ size = 20, className = "" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+            ),
+            AlertCircle: ({ size = 20, className = "" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+            ),
+            Settings: ({ size = 20, className = "" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            ),
+            RefreshCcw: ({ size = 20, className = "" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 2v6h6"/><path d="M21 12A9 9 0 0 0 6 5.3L3 8"/><path d="M21 22v-6h-6"/><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg>
+            ),
+            Grid: ({ size = 20, className = "" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            ),
+            CheckCircle: ({ size = 20, className = "" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            ),
+            XCircle: ({ size = 20, className = "" }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>
+            )
+        };
+
+        // --- 3. CONSTANTS & DATA ---
+        const CONSTANTS = {
+            DEFAULT_BID: 10.0000,
+            BASE_FX: 58.5000,
+            LOCAL_COMPONENT: 0.30,
+            FOREX_COMPONENT: 0.70,
+            PRELIMINARY_GEAR_PRICE: 10.3859
+        };
+
+        const KEY_RATES = [
+            { val: 54.00, label: "Strong Peso", source: "Scenario 3", type: "scenario" },
+            { val: 56.00, label: "DBCC Low", source: "NEDA", type: "neda" },
+            { val: 56.50, label: "Hist. '24", source: "Bloomberg", type: "bloomberg" },
+            { val: 57.00, label: "DBCC Mid", source: "NEDA", type: "neda" },
+            { val: 57.45, label: "BSP Avg", source: "BSP Fwd", type: "bsp" },
+            { val: 57.80, label: "2025 F'cast", source: "Bloomberg", type: "bloomberg" },
+            { val: 58.00, label: "DBCC High", source: "NEDA", type: "neda" },
+            { val: 58.50, label: "Base Rate", source: "Official", type: "base" },
+            { val: 59.80, label: "2031 F'cast", source: "Bloomberg", type: "bloomberg" },
+            { val: 61.20, label: "2032 F'cast", source: "Bloomberg", type: "bloomberg" },
+            { val: 62.00, label: "Weak Peso", source: "Scenario 2", type: "scenario" }
+        ];
+
+        // --- 4. SUB-COMPONENTS ---
+
+        const Card = ({ children, className = "" }) => (
+            <div className={`bg-white rounded-xl border border-slate-200 shadow-sm ${className}`}>
+                {children}
+            </div>
+        );
+
+        const MetricBox = ({ label, value, subtext, icon: Icon, trend }) => (
+            <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex items-start space-x-3 transition-all hover:shadow-md h-full">
+                <div className={`p-2 rounded-lg ${trend === 'up' ? 'bg-emerald-100 text-emerald-600' : trend === 'neutral' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'}`}>
+                    {Icon && <Icon size={20} />}
+                </div>
+                <div>
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</p>
+                    <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
+                    {subtext && <p className="text-xs text-slate-400 mt-1">{subtext}</p>}
+                </div>
+            </div>
+        );
+
+        const SliderControl = ({ label, value, onChange, min, max, step, unit, note }) => (
+            <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                    <label className="text-sm font-medium text-slate-700">{label}</label>
+                    <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                        {typeof value === 'number' ? value.toFixed(step < 1 ? 2 : 2) : value} {unit}
+                    </span>
+                </div>
+                <input
+                    type="range"
+                    min={min}
+                    max={max}
+                    step={step}
+                    value={value}
+                    onChange={(e) => onChange(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 hover:accent-blue-700 transition-all"
+                />
+                {note && <p className="text-xs text-slate-400 italic">{note}</p>}
+            </div>
+        );
+
+        // --- 5. HEAT MAP COMPONENTS ---
+
+        const HeatMapBase = ({ title, columns, bidRows, getCellData, legend }) => (
+            <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white">
+                <div className="bg-slate-50 p-4 border-b border-slate-200">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                            <Icons.Grid size={18} className="text-blue-600" />
+                            {title}
+                        </h3>
+                        {legend}
+                    </div>
+                </div>
+                
+                <div className="table-container overflow-x-auto pb-2">
+                    <table className="w-full text-right border-collapse text-xs whitespace-nowrap">
+                        <thead>
+                            <tr>
+                                <th className="sticky-col p-3 text-left bg-slate-100 font-semibold text-slate-600 border-b border-slate-200 min-w-[120px] shadow-sm">
+                                    Bid Price (₱) →
+                                </th>
+                                {columns.map((col, idx) => (
+                                    <th key={idx} className={`p-2 border-b border-slate-200 min-w-[70px] ${col.headerClass || 'bg-slate-50 text-slate-500 font-medium'}`}>
+                                        <div className="flex flex-col items-center">
+                                            <span>{col.label}</span>
+                                            {col.subLabel && <span className="text-[9px] opacity-75 whitespace-nowrap mt-0.5">{col.subLabel}</span>}
+                                        </div>
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {bidRows.map((bid) => (
+                                <tr key={bid} className="hover:bg-slate-50 group">
+                                    <td className={`sticky-col p-3 text-left font-bold text-slate-700 border-b border-slate-100 group-hover:bg-slate-50 ${bid === CONSTANTS.PRELIMINARY_GEAR_PRICE ? 'bg-emerald-50 text-emerald-800' : 'bg-white'}`}>
+                                        {bid.toFixed(4)}
+                                    </td>
+                                    {columns.map((col, idx) => {
+                                        const { value, bgClass, textClass } = getCellData(bid, col.val);
+                                        return (
+                                            <td key={idx} className={`p-2 border-b border-slate-100 ${bgClass} ${textClass}`}>
+                                                {value}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+
+        const ForexHeatMap = ({ calculateTariff }) => {
+            const bidRows = [8.00, 8.50, 9.00, 9.50, 10.00, 10.25, CONSTANTS.PRELIMINARY_GEAR_PRICE];
+
+            const columns = useMemo(() => {
+                const cols = new Set();
+                for (let fx = 54.00; fx <= 63.00; fx += 1.00) cols.add(fx);
+                KEY_RATES.forEach(r => cols.add(r.val));
+                
+                return Array.from(cols).sort((a, b) => a - b).map(fx => {
+                    const special = KEY_RATES.find(r => Math.abs(r.val - fx) < 0.001);
+                    let headerClass = "bg-slate-50 text-slate-500 font-medium";
+                    
+                    if (special) {
+                        switch(special.type) {
+                            case 'base': headerClass = "bg-yellow-50 text-yellow-700 font-bold border-yellow-200 border-b-2"; break;
+                            case 'bloomberg': headerClass = "bg-fuchsia-50 text-fuchsia-700 font-bold border-fuchsia-200 border-b-2"; break;
+                            case 'neda': headerClass = "bg-emerald-50 text-emerald-700 font-bold border-emerald-200 border-b-2"; break;
+                            case 'bsp': headerClass = "bg-indigo-50 text-indigo-700 font-bold border-indigo-200 border-b-2"; break;
+                            default: headerClass = "bg-slate-100 text-slate-600 font-semibold";
+                        }
+                    }
+                    return { val: fx, label: fx.toFixed(2), subLabel: special?.label, headerClass, type: special?.type };
+                });
+            }, []);
+
+            const getCellData = (bid, fx) => {
+                const { tariff, isFloor } = calculateTariff(bid, fx);
+                let bgClass = "bg-white", textClass = "text-slate-600";
+                
+                if (isFloor) {
+                    bgClass = "bg-slate-50 text-slate-400";
+                } else {
+                    const increase = tariff - bid;
+                    const maxIncrease = (bid * (0.3 + 0.7 * (63/58.5))) - bid;
+                    const intensity = Math.min((increase / maxIncrease), 1);
+                    if (intensity < 0.2) bgClass = "bg-blue-50 text-blue-700";
+                    else if (intensity < 0.4) bgClass = "bg-blue-100 text-blue-800";
+                    else if (intensity < 0.6) bgClass = "bg-blue-200 text-blue-900";
+                    else if (intensity < 0.8) bgClass = "bg-blue-300 text-blue-900";
+                    else bgClass = "bg-blue-400 text-white font-bold";
+                    if(bgClass.includes('text-white')) textClass = "text-white";
+                }
+
+                const colData = columns.find(c => c.val === fx);
+                if (colData?.type === 'base') { bgClass = "bg-yellow-50 border-x border-yellow-200"; textClass = "text-yellow-900 font-bold"; }
+                else if (colData?.type === 'bloomberg') bgClass = "bg-fuchsia-50 border-x border-fuchsia-100";
+                else if (colData?.type === 'neda') bgClass = "bg-emerald-50 border-x border-emerald-100";
+                else if (colData?.type === 'bsp') bgClass = "bg-indigo-50 border-x border-indigo-100";
+
+                return { value: tariff.toFixed(3), bgClass, textClass };
+            };
+
+            const legend = (
+                <div className="flex flex-wrap gap-3 text-xs font-medium">
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400"></span> Base</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-fuchsia-400"></span> Bloomberg</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> NEDA</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-indigo-400"></span> BSP</span>
+                </div>
+            );
+
+            return <HeatMapBase title="FX Sensitivity Matrix (PHP/kWh)" columns={columns} bidRows={bidRows} getCellData={getCellData} legend={legend} />;
+        };
+
+        const InflationHeatMap = ({ calculateTariff, inflationRate }) => {
+            const bidRows = [8.00, 8.50, 9.00, 9.50, 10.00, 10.25, CONSTANTS.PRELIMINARY_GEAR_PRICE];
+            
+            const columns = [6, 12, 18, 24, 30, 36, 42, 48, 54, 60].map(m => ({
+                val: m,
+                label: `${m} Mo`,
+                headerClass: "bg-slate-50 text-slate-600 font-medium"
+            }));
+
+            const getCellData = (bid, months) => {
+                const tariff = calculateTariff(bid, inflationRate, months);
+                let bgClass = "bg-white", textClass = "text-slate-600";
+
+                const maxTariff = calculateTariff(bid, inflationRate, 60);
+                const intensity = (tariff - bid) / (maxTariff - bid);
+
+                if (intensity < 0.2) bgClass = "bg-purple-50 text-purple-700";
+                else if (intensity < 0.4) bgClass = "bg-purple-100 text-purple-800";
+                else if (intensity < 0.6) bgClass = "bg-purple-200 text-purple-900";
+                else if (intensity < 0.8) bgClass = "bg-purple-300 text-purple-900";
+                else { bgClass = "bg-purple-600 text-white font-bold"; textClass = "text-white"; }
+
+                return { value: tariff.toFixed(3), bgClass, textClass };
+            };
+
+            const legend = (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <span>Assuming constant annual inflation of <strong className="text-purple-600">{inflationRate}%</strong></span>
+                </div>
+            );
+
+            return <HeatMapBase title={`Inflation Delay Matrix (Bid vs Months)`} columns={columns} bidRows={bidRows} getCellData={getCellData} legend={legend} />;
+        };
+
+        // --- 6. COMPARISON PANEL ---
+        
+        const ComparisonPanel = ({ bidPrice, calculateForex, calculateInflation }) => {
+            const [scenarioFx, setScenarioFx] = useState(56.00); 
+            const [scenarioInf, setScenarioInf] = useState(4.0);
+            
+            // Generate Intersection Data (Time-based 0-60 months)
+            const chartData = useMemo(() => {
+                const data = [];
+                const forexVal = calculateForex(bidPrice, scenarioFx).tariff;
+                
+                for (let m = 0; m <= 60; m+=2) {
+                    const inflationVal = calculateInflation(bidPrice, scenarioInf, m);
+                    data.push({
+                        month: m,
+                        forexLine: forexVal,
+                        inflationLine: inflationVal
+                    });
+                }
+                return data;
+            }, [bidPrice, scenarioFx, scenarioInf]);
+
+            // Calculate "Intersection" Month
+            const breakEvenMonth = useMemo(() => {
+                const forexVal = calculateForex(bidPrice, scenarioFx).tariff;
+                // Solve: Bid * (1 + Inf*m/1200) = ForexVal
+                // (ForexVal/Bid - 1) * 1200 / Inf = m
+                if (scenarioInf === 0) return 999;
+                const m = ((forexVal / bidPrice) - 1) * 1200 / scenarioInf;
+                return m > 0 ? m : 0;
+            }, [bidPrice, scenarioFx, scenarioInf]);
+
+            const forexRes = calculateForex(bidPrice, scenarioFx);
+
+            const Recharts = window.Recharts;
+            const canRenderChart = Recharts && Recharts.LineChart && Recharts.Line && Recharts.XAxis && Recharts.YAxis && Recharts.CartesianGrid && Recharts.Tooltip && Recharts.ResponsiveContainer && Recharts.ReferenceLine && Recharts.Legend;
+
+            if (!canRenderChart) {
+                 return <div className="p-10 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200">Loading Chart Components...</div>;
+            }
+
+            const { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend: ChartLegend } = Recharts;
+
+            return (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                        {/* Scenario Controls */}
+                        <div className="md:col-span-4 space-y-4">
+                            <Card className="p-6 h-full space-y-6">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                    <Icons.Settings size={18} /> Scenario Builder
+                                </h3>
+                                <div className="space-y-6">
+                                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                        <label className="text-xs font-bold text-blue-800 block mb-2 flex justify-between">
+                                            <span>Forex Scenario</span>
+                                            <span>{scenarioFx.toFixed(2)} PHP</span>
+                                        </label>
+                                        <input type="range" min={50} max={65} step={0.1} value={scenarioFx} onChange={(e) => setScenarioFx(parseFloat(e.target.value))} className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                                        <p className="text-[10px] text-blue-600 mt-2 leading-tight">
+                                            {scenarioFx < CONSTANTS.BASE_FX 
+                                                ? "Peso strengthens (Tariff hits floor)." 
+                                                : "Peso weakens (Tariff increases)."}
+                                        </p>
+                                    </div>
+                                    <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
+                                        <label className="text-xs font-bold text-purple-800 block mb-2 flex justify-between">
+                                            <span>Inflation Rate</span>
+                                            <span>{scenarioInf.toFixed(1)}% / yr</span>
+                                        </label>
+                                        <input type="range" min={1} max={8} step={0.1} value={scenarioInf} onChange={(e) => setScenarioInf(parseFloat(e.target.value))} className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600" />
+                                    </div>
+                                </div>
+
+                                <div className={`p-4 rounded-xl border-l-4 ${breakEvenMonth <= 6 ? 'bg-amber-50 border-amber-400 text-amber-900' : 'bg-emerald-50 border-emerald-500 text-emerald-900'}`}>
+                                    <h4 className="font-bold text-sm mb-1">
+                                        {breakEvenMonth <= 0 
+                                            ? "Inflation is IMMEDIATELY Costlier" 
+                                            : `Intersection at ~${breakEvenMonth.toFixed(1)} Months`}
+                                    </h4>
+                                    <p className="text-xs opacity-90">
+                                        {breakEvenMonth <= 0 
+                                            ? "Because the Floor Price protects the Forex tariff, any inflation instantly makes the Inflation Option more expensive."
+                                            : `The Forex option remains cheaper for the first ${(breakEvenMonth/12).toFixed(1)} years.`}
+                                    </p>
+                                </div>
+                            </Card>
+                        </div>
+
+                        {/* Intersection Chart */}
+                        <div className="md:col-span-8">
+                            <Card className="p-6 h-[450px] flex flex-col">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="font-bold text-slate-900">Tariff Intersection Analysis</h3>
+                                    <span className="text-xs px-2 py-1 bg-slate-100 rounded text-slate-500">Duration: 5 Years</span>
+                                </div>
+                                <div className="flex-1 min-h-0">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                            <XAxis 
+                                                dataKey="month" 
+                                                label={{ value: 'Delay Duration (Months)', position: 'insideBottom', offset: -5, style: { fill: '#64748b', fontSize: '12px' } }} 
+                                                tick={{ fill: '#64748b', fontSize: '12px' }} 
+                                            />
+                                            <YAxis 
+                                                domain={['auto', 'auto']} 
+                                                tickFormatter={(val) => `₱${val.toFixed(2)}`} 
+                                                tick={{ fill: '#64748b', fontSize: '12px' }} 
+                                            />
+                                            <Tooltip 
+                                                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                formatter={(val, name) => [`₱ ${val.toFixed(4)}`, name === 'forexLine' ? 'Forex Option' : 'Inflation Option']}
+                                                labelFormatter={(label) => `Month ${label}`}
+                                            />
+                                            <ChartLegend verticalAlign="top" height={36}/>
+                                            
+                                            <Line 
+                                                type="step" 
+                                                dataKey="forexLine" 
+                                                name="Forex Option (70% component)" 
+                                                stroke="#2563eb" 
+                                                strokeWidth={3} 
+                                                dot={false}
+                                            />
+                                            <Line 
+                                                type="monotone" 
+                                                dataKey="inflationLine" 
+                                                name="Inflation Option (100% component)" 
+                                                stroke="#9333ea" 
+                                                strokeWidth={3} 
+                                                dot={false} 
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </Card>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 7. MAIN APPLICATION ---
+
+        function IndexationSimulator() {
+            const [activeTab, setActiveTab] = useState('forex'); 
+            const [bidPrice, setBidPrice] = useState(CONSTANTS.DEFAULT_BID);
+            const [fxRate, setFxRate] = useState(62.00);
+            const [inflationRate, setInflationRate] = useState(3.0);
+            const [monthsDelay, setMonthsDelay] = useState(18);
+
+            // Constraint Logic: Ensure Bid Price never exceeds GEAR Price
+            const handleBidPriceChange = (val) => {
+                if (val > CONSTANTS.PRELIMINARY_GEAR_PRICE) {
+                    setBidPrice(CONSTANTS.PRELIMINARY_GEAR_PRICE);
+                } else {
+                    setBidPrice(val);
+                }
+            };
+
+            // --- Business Logic ---
+            const calculateForexTariff = (bid, currentFx) => {
+                if (currentFx < CONSTANTS.BASE_FX) {
+                    return { tariff: bid, isFloor: true };
+                }
+                const adjusted = bid * (CONSTANTS.LOCAL_COMPONENT + (CONSTANTS.FOREX_COMPONENT * (currentFx / CONSTANTS.BASE_FX)));
+                return { tariff: adjusted, isFloor: false };
+            };
+
+            const calculateInflationTariff = (bid, inflation, months) => {
+                const factor = (inflation / 100) * months / 12;
+                return bid * (1 + factor);
+            };
+
+            // --- Derived State ---
+            const forexResult = calculateForexTariff(bidPrice, fxRate);
+            const inflationTariffVal = calculateInflationTariff(bidPrice, inflationRate, monthsDelay);
+            
+            const currentFinalTariff = activeTab === 'forex' ? forexResult.tariff : inflationTariffVal;
+            const percentChange = ((currentFinalTariff - bidPrice) / bidPrice) * 100;
+            const isFloorActive = activeTab === 'forex' && forexResult.isFloor;
+
+            // --- Chart Data ---
+            const currentChartData = useMemo(() => {
+                const data = [];
+                if (activeTab === 'forex') {
+                    for (let rate = 50; rate <= 70; rate += 1) {
+                        const res = calculateForexTariff(bidPrice, rate);
+                        data.push({
+                            xVal: rate,
+                            tariff: parseFloat(res.tariff.toFixed(4)),
+                            base: bidPrice,
+                            isFloor: res.isFloor
+                        });
+                    }
+                } else {
+                    for (let m = 0; m <= 60; m += 2) {
+                        const t = calculateInflationTariff(bidPrice, inflationRate, m);
+                        data.push({
+                            xVal: m,
+                            tariff: parseFloat(t.toFixed(4)),
+                            base: bidPrice
+                        });
+                    }
+                }
+                return data;
+            }, [activeTab, bidPrice, inflationRate, fxRate]); 
+
+            const xLabel = activeTab === 'forex' ? "Exchange Rate (PHP/USD)" : "Duration (Months)";
+
+            // Recharts check for Main Chart
+            const Recharts = window.Recharts;
+            const canRenderMainChart = Recharts && Recharts.AreaChart && Recharts.Area && Recharts.XAxis && Recharts.YAxis && Recharts.CartesianGrid && Recharts.Tooltip && Recharts.ResponsiveContainer && Recharts.ReferenceLine;
+
+            const { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } = Recharts || {};
+
+            // Helper to safe render label
+            const renderReferenceLabel = (props) => {
+                const { viewBox, value, fill = "#666" } = props;
+                return (
+                    <text x={viewBox.x} y={viewBox.y} fill={fill} dy={-10} fontSize={10} textAnchor="middle">
+                        {value}
+                    </text>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-800 p-4 md:p-8">
+                    <div className="max-w-7xl mx-auto space-y-6">
+                        
+                        {/* Header */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 flex items-center gap-2">
+                                    <Icons.TrendingUp className="text-emerald-600" />
+                                    GEAR5 Indexation Simulator
+                                </h1>
+                                <p className="text-slate-500 mt-1">
+                                    Simulate Green Energy Auction Reserve Price adjustments.
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm text-sm">
+                                <span className="text-slate-400">Preliminary GEAR Price:</span>
+                                <span className="font-bold text-slate-800">PhP {CONSTANTS.PRELIMINARY_GEAR_PRICE} / kWh</span>
+                            </div>
+                        </div>
+
+                        {/* Navigation Tabs */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <button onClick={() => setActiveTab('forex')} className={`p-4 rounded-xl border-2 transition-all text-left ${activeTab === 'forex' ? 'border-blue-600 bg-blue-50 text-blue-700 ring-2 ring-blue-100' : 'border-white bg-white text-slate-600 hover:bg-slate-50'}`}>
+                                <div className="font-bold flex items-center gap-2"><Icons.RefreshCcw size={18}/> Option 1: Forex</div>
+                                <div className="text-xs opacity-75 mt-1">Adjusts for USD/PHP Fluctuations</div>
+                            </button>
+                            <button onClick={() => setActiveTab('inflation')} className={`p-4 rounded-xl border-2 transition-all text-left ${activeTab === 'inflation' ? 'border-purple-600 bg-purple-50 text-purple-700 ring-2 ring-purple-100' : 'border-white bg-white text-slate-600 hover:bg-slate-50'}`}>
+                                <div className="font-bold flex items-center gap-2"><Icons.TrendingUp size={18}/> Option 2: Inflation</div>
+                                <div className="text-xs opacity-75 mt-1">Adjusts for CPI over Time</div>
+                            </button>
+                            <button onClick={() => setActiveTab('comparison')} className={`p-4 rounded-xl border-2 transition-all text-left ${activeTab === 'comparison' ? 'border-emerald-600 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-100' : 'border-white bg-white text-slate-600 hover:bg-slate-50'}`}>
+                                <div className="font-bold flex items-center gap-2"><Icons.Scale size={18}/> Compare Mechanisms</div>
+                                <div className="text-xs opacity-75 mt-1">Forex vs Inflation Scenario</div>
+                            </button>
+                        </div>
+
+                        {/* Main Content Area */}
+                        {activeTab === 'comparison' ? (
+                            <ComparisonPanel 
+                                bidPrice={bidPrice}
+                                calculateForex={calculateForexTariff}
+                                calculateInflation={calculateInflationTariff}
+                            />
+                        ) : (
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                                {/* Left Panel: Configuration */}
+                                <div className="lg:col-span-4 space-y-6">
+                                    <Card className="p-6 space-y-6">
+                                        <h3 className="font-bold text-slate-900 flex items-center gap-2"><Icons.Settings size={18} /> Inputs</h3>
+                                        
+                                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <label className="block text-xs font-bold text-slate-500 uppercase">Base Bid Price</label>
+                                                <span className="text-[10px] text-emerald-600 font-medium">Max: {CONSTANTS.PRELIMINARY_GEAR_PRICE}</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <span className="text-slate-400 font-bold mr-2">₱</span>
+                                                <input 
+                                                    type="number" 
+                                                    value={bidPrice} 
+                                                    max={CONSTANTS.PRELIMINARY_GEAR_PRICE}
+                                                    step="0.0001" 
+                                                    onChange={(e) => handleBidPriceChange(parseFloat(e.target.value))} 
+                                                    className="w-full bg-transparent font-mono text-lg font-bold outline-none"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {activeTab === 'forex' ? (
+                                            <>
+                                                <SliderControl label="FX Rate (PHP/USD)" value={fxRate} min={50} max={70} step={0.1} unit="₱" onChange={setFxRate} note={`Base Rate: ${CONSTANTS.BASE_FX.toFixed(4)}`}/>
+                                                <div className={`p-3 rounded border text-xs flex gap-2 ${isFloorActive ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-50 text-slate-500'}`}>
+                                                    <Icons.AlertCircle size={16} className="shrink-0 mt-0.5" />
+                                                    <p>{isFloorActive ? "Floor Price Active: Rate held at Bid Price." : "Tariff adjusting for depreciation."}</p>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <SliderControl label="Inflation Rate" value={inflationRate} min={0} max={10} step={0.1} unit="%" onChange={setInflationRate}/>
+                                                <SliderControl label="Duration" value={monthsDelay} min={0} max={60} step={1} unit="Months" onChange={setMonthsDelay}/>
+                                            </>
+                                        )}
+                                    </Card>
+                                </div>
+
+                                {/* Right Panel: Visualization */}
+                                <div className="lg:col-span-8 space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <MetricBox label="Adjusted Tariff" value={`₱ ${currentFinalTariff.toFixed(4)}`} subtext="/ kWh" icon={Icons.DollarSign} trend="neutral" />
+                                        <MetricBox label="Change" value={`${percentChange > 0 ? '+' : ''}${percentChange.toFixed(2)}%`} subtext="Percentage" icon={Icons.TrendingUp} trend={percentChange > 0 ? 'up' : 'neutral'} />
+                                        <MetricBox label="Impact" value={`₱ ${(currentFinalTariff - bidPrice).toFixed(4)}`} subtext="Absolute" icon={Icons.Calculator} trend={percentChange > 0 ? 'up' : 'neutral'} />
+                                    </div>
+
+                                    <Card className="p-6 h-[400px]">
+                                        {/* Main Chart Guard */}
+                                        {canRenderMainChart ? (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={currentChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                    <defs>
+                                                        <linearGradient id="colorTariff" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor={activeTab === 'forex' ? "#2563eb" : "#9333ea"} stopOpacity={0.1}/>
+                                                            <stop offset="95%" stopColor={activeTab === 'forex' ? "#2563eb" : "#9333ea"} stopOpacity={0}/>
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                    <XAxis dataKey="xVal" label={{ value: xLabel, position: 'insideBottom', offset: -5, style: { fill: '#64748b', fontSize: '12px' } }} tick={{ fill: '#64748b', fontSize: '12px' }} />
+                                                    <YAxis domain={['auto', 'auto']} tickFormatter={(val) => `₱${val.toFixed(2)}`} tick={{ fill: '#64748b', fontSize: '12px' }} />
+                                                    <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }} formatter={(value) => [`₱ ${value.toFixed(4)}`, 'Tariff']} />
+                                                    <Area type="monotone" dataKey="tariff" stroke={activeTab === 'forex' ? "#2563eb" : "#9333ea"} strokeWidth={3} fillOpacity={1} fill="url(#colorTariff)" />
+                                                    <ReferenceLine y={bidPrice} stroke="#94a3b8" strokeDasharray="3 3" label={(props) => renderReferenceLabel({...props, value: 'Base'})} />
+                                                    <ReferenceLine x={activeTab === 'forex' ? fxRate : monthsDelay} stroke="#ef4444" strokeDasharray="3 3" label={(props) => renderReferenceLabel({...props, value: 'Current', fill: '#ef4444'})} />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        ) : <div className="h-full flex items-center justify-center text-slate-400">Loading Chart Components...</div>}
+                                    </Card>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Heat Maps Section */}
+                        {activeTab === 'forex' && (
+                            <ForexHeatMap calculateTariff={calculateForexTariff} />
+                        )}
+                        {activeTab === 'inflation' && (
+                            <InflationHeatMap calculateTariff={calculateInflationTariff} inflationRate={inflationRate} />
+                        )}
+
+                        <div className="text-center text-xs text-slate-400 pt-8 pb-4">
+                            <p>Based on "Proposed Preliminary Green Energy Auction Reserve Price for Round 5 (GEAR5)" Document.</p>
+                            <p>Parameters: Base FX {CONSTANTS.BASE_FX} | 30% Local / 70% Forex Split.</p>
+                        </div>
+
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<IndexationSimulator />);
+    </script>
+</body>
+</html>
