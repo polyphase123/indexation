@@ -220,14 +220,14 @@
             const d1Str = formatDate(d1);
 
             return (
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+                <Card className="p-6 space-y-4 h-full">
                     <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200">
-                        <Icons.Calendar size={18} className="text-slate-600" />
+                        <Icons.Calendar size={18} className="text-blue-600" />
                         <h4 className="font-bold text-sm text-slate-800">SECTION 1.6: TIMELINE</h4>
                     </div>
 
                     {/* Assumptions Display */}
-                    <div className="text-[10px] text-slate-500 space-y-1 mb-2 bg-white p-2 rounded border border-slate-100">
+                    <div className="text-[10px] text-slate-500 space-y-1 mb-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
                         <div className="flex justify-between">
                             <span>D0 (Start):</span>
                             <span className="font-mono font-bold">{d0Str}</span>
@@ -236,7 +236,7 @@
                             <span>D1 (D0+1):</span>
                             <span className="font-mono">{d1Str}</span>
                         </div>
-                        <div className="flex justify-between pt-1 border-t border-slate-100 mt-1">
+                        <div className="flex justify-between pt-1 border-t border-slate-200 mt-1">
                             <span>Est. COA Date:</span>
                             <span className="font-mono font-bold text-blue-600">{coaStr}</span>
                         </div>
@@ -253,7 +253,7 @@
                                 <button
                                     key={y}
                                     onClick={() => setYear(y)}
-                                    className={`py-2 px-1 text-sm font-bold rounded-lg border transition-all ${year === y ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'}`}
+                                    className={`py-2 px-1 text-sm font-bold rounded-lg border transition-all ${year === y ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
                                 >
                                     {y}
                                 </button>
@@ -288,7 +288,7 @@
                     )}
 
                     {/* Result Display */}
-                    <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-2">
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-200 mt-auto">
                         <span className="text-sm text-slate-500">Adjustment Period:</span>
                         <span className="text-lg font-bold text-slate-900">{computedDelay} Months</span>
                     </div>
@@ -296,7 +296,7 @@
                     <div className="bg-blue-50 p-2 rounded text-[10px] text-blue-700 italic leading-tight">
                         Period between COA ({coaStr}) and {scenario === 'force_majeure' ? 'COD' : 'DCD'} ({year}).
                     </div>
-                </div>
+                </Card>
             );
         };
 
@@ -817,11 +817,12 @@
                                 baseFx={baseFx}
                             />
                         ) : (
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                                {/* Left Panel: Configuration */}
+                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                                {/* Left Panel: Split Configuration Cards */}
                                 <div className="lg:col-span-4 space-y-6">
+                                    {/* Card 1: Economic Parameters */}
                                     <Card className="p-6 space-y-6">
-                                        <h3 className="font-bold text-slate-900 flex items-center gap-2"><Icons.Settings size={18} /> Inputs</h3>
+                                        <h3 className="font-bold text-slate-900 flex items-center gap-2"><Icons.Settings size={18} /> Economic Parameters</h3>
                                         
                                         <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
                                             <div className="flex justify-between items-center mb-1">
@@ -841,7 +842,6 @@
                                             </div>
                                         </div>
 
-                                        {/* New Base FX Rate Input Cell */}
                                         {activeTab === 'forex' && (
                                             <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
                                                 <div className="flex justify-between items-center mb-1">
@@ -865,46 +865,35 @@
 
                                         {activeTab === 'forex' ? (
                                             <>
-                                                <SliderControl label="FX Rate (PHP/USD)" value={fxRate} min={50} max={70} step={0.1} unit="₱" onChange={setFxRate} note={`Comparing against Base Rate: ${baseFx.toFixed(4)}`}/>
-                                                <div className={`p-3 rounded border text-xs flex gap-2 mb-6 ${isFloorActive ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-50 text-slate-500'}`}>
+                                                <SliderControl label="Current FX Rate" value={fxRate} min={50} max={70} step={0.1} unit="₱" onChange={setFxRate} note={`Comparing against Base Rate: ${baseFx.toFixed(4)}`}/>
+                                                <div className={`p-3 rounded border text-xs flex gap-2 ${isFloorActive ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-50 text-slate-500'}`}>
                                                     <Icons.AlertCircle size={16} className="shrink-0 mt-0.5" />
                                                     <p>{isFloorActive ? "Floor Price Active: Rate held at Bid Price." : "Tariff adjusting for depreciation."}</p>
                                                 </div>
-                                                
-                                                {/* SHARED TIMELINE CONTROL (FOREX) */}
-                                                <TimelineControl 
-                                                    year={targetYear} setYear={setTargetYear}
-                                                    scenario={delayScenario} setScenario={setDelayScenario}
-                                                    codDelay={codDelay} setCodDelay={setCodDelay}
-                                                    computedDelay={calculatedMonthsDelay}
-                                                />
                                             </>
                                         ) : (
-                                            <>
-                                                {/* INFLATION SPECIFIC CONTROLS */}
-                                                <SliderControl label="Inflation Rate" value={inflationRate} min={0} max={10} step={0.1} unit="%" onChange={setInflationRate}/>
-                                                
-                                                {/* SHARED TIMELINE CONTROL (INFLATION) */}
-                                                <TimelineControl 
-                                                    year={targetYear} setYear={setTargetYear}
-                                                    scenario={delayScenario} setScenario={setDelayScenario}
-                                                    codDelay={codDelay} setCodDelay={setCodDelay}
-                                                    computedDelay={calculatedMonthsDelay}
-                                                />
-                                            </>
+                                            <SliderControl label="Inflation Rate" value={inflationRate} min={0} max={10} step={0.1} unit="%" onChange={setInflationRate}/>
                                         )}
                                     </Card>
+
+                                    {/* Card 2: Timeline Configuration */}
+                                    <TimelineControl 
+                                        year={targetYear} setYear={setTargetYear}
+                                        scenario={delayScenario} setScenario={setDelayScenario}
+                                        codDelay={codDelay} setCodDelay={setCodDelay}
+                                        computedDelay={calculatedMonthsDelay}
+                                    />
                                 </div>
 
                                 {/* Right Panel: Visualization */}
-                                <div className="lg:col-span-8 space-y-6">
+                                <div className="lg:col-span-8 flex flex-col h-full space-y-6">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <MetricBox label="Adjusted Tariff" value={`₱ ${currentFinalTariff.toFixed(4)}`} subtext="/ kWh" icon={Icons.DollarSign} trend="neutral" />
                                         <MetricBox label="Change" value={`${percentChange > 0 ? '+' : ''}${percentChange.toFixed(2)}%`} subtext="Percentage" icon={Icons.TrendingUp} trend={percentChange > 0 ? 'up' : 'neutral'} />
                                         <MetricBox label="Impact" value={`₱ ${(currentFinalTariff - bidPrice).toFixed(4)}`} subtext="Absolute" icon={Icons.Calculator} trend={percentChange > 0 ? 'up' : 'neutral'} />
                                     </div>
 
-                                    <Card className="p-6 h-[400px]">
+                                    <Card className="p-6 flex-1 min-h-[400px]">
                                         {/* Main Chart Guard */}
                                         {canRenderMainChart ? (
                                             <ResponsiveContainer width="100%" height="100%">
