@@ -196,7 +196,7 @@
                             <h4 className="font-bold text-slate-800 mb-1">Scenario Notes</h4>
                             <p className="text-slate-600">
                                 <strong>Floor Price:</strong> Active when FX &lt; 58.50.<br/>
-                                <strong>Comparison:</strong> Forex adjustment is one-time; Inflation is continuous over delay duration.
+                                <strong>Comparison:</strong> Both options are <strong>one-time adjustments</strong> calculated at DCD/COD. Forex uses the spot rate; Inflation uses the delay duration.
                             </p>
                         </div>
                     </div>
@@ -472,7 +472,7 @@
                                             />
                                             <Tooltip 
                                                 contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                                formatter={(val) => `₱ ${val.toFixed(4)}`}
+                                                formatter={(val, name) => [`₱ ${val.toFixed(4)}`, name === 'forexLine' ? 'Forex Option' : 'Inflation Option']}
                                                 labelFormatter={(label) => `Month ${label}`}
                                             />
                                             <ChartLegend verticalAlign="top" height={36}/>
