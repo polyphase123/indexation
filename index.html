@@ -113,7 +113,7 @@
         // --- 3. CONSTANTS & DATA ---
         const CONSTANTS = {
             DEFAULT_BID: 10.0000,
-            DEFAULT_BASE_FX: 58.5000, // Changed from BASE_FX to default
+            DEFAULT_BASE_FX: 58.5000, 
             LOCAL_COMPONENT: 0.30,
             FOREX_COMPONENT: 0.70,
             PRELIMINARY_GEAR_PRICE: 10.3859,
@@ -404,13 +404,22 @@
 
             const columns = useMemo(() => {
                 const cols = new Set();
-                // Add Integers 54 to 63
-                for (let fx = 54.00; fx <= 63.00; fx += 1.00) cols.add(fx);
-                // Add Key Rates
-                KEY_RATES.forEach(r => cols.add(r.val));
+                
+                // Dynamic Range: Center around baseFx (approx -4 to +5)
+                const center = Math.floor(baseFx);
+                for (let fx = center - 4; fx <= center + 5; fx += 1.00) cols.add(fx);
+                
+                // Update Key Rates to reflect current Base FX
+                const dynamicKeyRates = KEY_RATES.map(r => 
+                    r.type === 'base' 
+                        ? { ...r, val: baseFx, label: "Base Rate" }
+                        : r
+                );
+
+                dynamicKeyRates.forEach(r => cols.add(r.val));
                 
                 return Array.from(cols).sort((a, b) => a - b).map(fx => {
-                    const special = KEY_RATES.find(r => Math.abs(r.val - fx) < 0.001);
+                    const special = dynamicKeyRates.find(r => Math.abs(r.val - fx) < 0.001);
                     let headerClass = "bg-slate-50 text-slate-500 font-medium";
                     let label = fx.toFixed(special ? 2 : 0); // Remove decimals for integers to save space if not special
                     if(special) label = fx.toFixed(2);
@@ -426,7 +435,7 @@
                     }
                     return { val: fx, label, subLabel: special?.label, headerClass, type: special?.type };
                 });
-            }, []);
+            }, [baseFx]);
 
             const getCellData = (bid, fx) => {
                 const { tariff, isFloor } = calculateTariff(bid, fx);
@@ -436,8 +445,10 @@
                     bgClass = "bg-slate-50 text-slate-400";
                 } else {
                     const increase = tariff - bid;
-                    // Max increase calc assumes upper bound of sensitivity ~63 vs base
-                    const maxIncrease = (bid * (0.3 + 0.7 * (63/baseFx))) - bid;
+                    // Dynamic max for color scaling based on visible range
+                    const maxFx = columns[columns.length - 1].val;
+                    const maxIncrease = (bid * (0.3 + 0.7 * (maxFx/baseFx))) - bid;
+                    
                     const intensity = Math.min((increase / maxIncrease), 1);
                     if (intensity < 0.2) bgClass = "bg-blue-50 text-blue-700";
                     else if (intensity < 0.4) bgClass = "bg-blue-100 text-blue-800";
@@ -447,7 +458,10 @@
                     if(bgClass.includes('text-white')) textClass = "text-white";
                 }
 
-                const colData = columns.find(c => c.val === fx);
+                // Find column data to apply column-specific styling (like Base yellow column)
+                // Use fuzzy match for floats
+                const colData = columns.find(c => Math.abs(c.val - fx) < 0.001);
+                
                 if (colData?.type === 'base') { bgClass = "bg-yellow-50 border-x border-yellow-200"; textClass = "text-yellow-900 font-bold"; }
                 else if (colData?.type === 'bloomberg') bgClass = "bg-fuchsia-50 border-x border-fuchsia-100";
                 else if (colData?.type === 'neda') bgClass = "bg-emerald-50 border-x border-emerald-100";
