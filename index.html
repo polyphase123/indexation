@@ -113,7 +113,7 @@
         // --- 3. CONSTANTS & DATA ---
         const CONSTANTS = {
             DEFAULT_BID: 10.0000,
-            BASE_FX: 58.5000,
+            DEFAULT_BASE_FX: 58.5000, // Changed from BASE_FX to default
             LOCAL_COMPONENT: 0.30,
             FOREX_COMPONENT: 0.70,
             PRELIMINARY_GEAR_PRICE: 10.3859,
@@ -302,7 +302,7 @@
 
         // --- 6. REFERENCE & DEFINITIONS ---
         
-        const ReferenceSection = () => (
+        const ReferenceSection = ({ baseFx }) => (
             <div className="mt-8">
                 <Card className="p-6">
                     <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
@@ -336,6 +336,7 @@
                             <p className="text-slate-600">
                                 <strong>D0:</strong> Nov 25, 2025. <strong>D1:</strong> Nov 26, 2025.<br/>
                                 <strong>COA Date:</strong> D1 + 543 Days + 30 Working Days.<br/>
+                                <strong>Base FX Used:</strong> {baseFx.toFixed(2)} PHP/USD.<br/>
                                 <strong>Adjustment:</strong> One-time adjustment based on period from COA to DCD/COD.
                             </p>
                         </div>
@@ -398,7 +399,7 @@
             </div>
         );
 
-        const ForexHeatMap = ({ calculateTariff }) => {
+        const ForexHeatMap = ({ calculateTariff, baseFx }) => {
             const bidRows = [8.00, 8.50, 9.00, 9.50, 10.00, CONSTANTS.PRELIMINARY_GEAR_PRICE];
 
             const columns = useMemo(() => {
@@ -435,7 +436,8 @@
                     bgClass = "bg-slate-50 text-slate-400";
                 } else {
                     const increase = tariff - bid;
-                    const maxIncrease = (bid * (0.3 + 0.7 * (63/58.5))) - bid;
+                    // Max increase calc assumes upper bound of sensitivity ~63 vs base
+                    const maxIncrease = (bid * (0.3 + 0.7 * (63/baseFx))) - bid;
                     const intensity = Math.min((increase / maxIncrease), 1);
                     if (intensity < 0.2) bgClass = "bg-blue-50 text-blue-700";
                     else if (intensity < 0.4) bgClass = "bg-blue-100 text-blue-800";
@@ -502,9 +504,9 @@
 
         // --- 8. COMPARISON PANEL ---
         
-        const ComparisonPanel = ({ bidPrice, calculateForex, calculateInflation, delayMonths }) => {
+        const ComparisonPanel = ({ bidPrice, calculateForex, calculateInflation, delayMonths, baseFx }) => {
             const [scenarioFx, setScenarioFx] = useState(56.00); 
-            const [scenarioInf, setScenarioInf] = useState(4.0);
+            const [scenarioInf, setScenarioInf] = useState(3.0);
             
             // Generate Intersection Data
             const chartData = useMemo(() => {
@@ -521,7 +523,7 @@
                     });
                 }
                 return data;
-            }, [bidPrice, scenarioFx, scenarioInf]);
+            }, [bidPrice, scenarioFx, scenarioInf, baseFx]);
 
             // Calculate "Intersection" Month
             const breakEvenMonth = useMemo(() => {
@@ -529,7 +531,7 @@
                 if (scenarioInf === 0) return 999;
                 const m = ((forexVal / bidPrice) - 1) * 1200 / scenarioInf;
                 return m > 0 ? m : 0;
-            }, [bidPrice, scenarioFx, scenarioInf]);
+            }, [bidPrice, scenarioFx, scenarioInf, baseFx]);
 
             const Recharts = window.Recharts;
             const canRenderChart = Recharts && Recharts.LineChart && Recharts.Line && Recharts.XAxis && Recharts.YAxis && Recharts.CartesianGrid && Recharts.Tooltip && Recharts.ResponsiveContainer && Recharts.ReferenceLine && Recharts.Legend;
@@ -557,7 +559,7 @@
                                         </label>
                                         <input type="range" min={50} max={65} step={0.1} value={scenarioFx} onChange={(e) => setScenarioFx(parseFloat(e.target.value))} className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
                                         <p className="text-[10px] text-blue-600 mt-2 leading-tight">
-                                            {scenarioFx < CONSTANTS.BASE_FX 
+                                            {scenarioFx < baseFx 
                                                 ? "Peso strengthens (Tariff hits floor)." 
                                                 : "Peso weakens (Tariff increases)."}
                                         </p>
@@ -649,6 +651,9 @@
             const [fxRate, setFxRate] = useState(62.00);
             const [inflationRate, setInflationRate] = useState(3.0);
             
+            // New State: Base FX Rate
+            const [baseFx, setBaseFx] = useState(CONSTANTS.DEFAULT_BASE_FX);
+
             // New State for Timeline Logic
             const [targetYear, setTargetYear] = useState(2028);
             const [delayScenario, setDelayScenario] = useState('standard'); // 'standard' or 'force_majeure'
@@ -685,12 +690,12 @@
                 }
             };
 
-            // --- Business Logic ---
+            // --- Business Logic (Updated to use dynamic baseFx) ---
             const calculateForexTariff = (bid, currentFx) => {
-                if (currentFx < CONSTANTS.BASE_FX) {
+                if (currentFx < baseFx) {
                     return { tariff: bid, isFloor: true };
                 }
-                const adjusted = bid * (CONSTANTS.LOCAL_COMPONENT + (CONSTANTS.FOREX_COMPONENT * (currentFx / CONSTANTS.BASE_FX)));
+                const adjusted = bid * (CONSTANTS.LOCAL_COMPONENT + (CONSTANTS.FOREX_COMPONENT * (currentFx / baseFx)));
                 return { tariff: adjusted, isFloor: false };
             };
 
@@ -731,7 +736,7 @@
                     }
                 }
                 return data;
-            }, [activeTab, bidPrice, inflationRate, fxRate]); 
+            }, [activeTab, bidPrice, inflationRate, fxRate, baseFx]); 
 
             const xLabel = activeTab === 'forex' ? "Exchange Rate (PHP/USD)" : "Duration (Months)";
 
@@ -795,6 +800,7 @@
                                 calculateForex={calculateForexTariff}
                                 calculateInflation={calculateInflationTariff}
                                 delayMonths={calculatedMonthsDelay}
+                                baseFx={baseFx}
                             />
                         ) : (
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -821,9 +827,31 @@
                                             </div>
                                         </div>
 
+                                        {/* New Base FX Rate Input Cell */}
+                                        {activeTab === 'forex' && (
+                                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase">Base FX Rate</label>
+                                                    <span className="text-[10px] text-blue-600 font-medium">Default: {CONSTANTS.DEFAULT_BASE_FX.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <span className="text-slate-400 font-bold mr-2">₱</span>
+                                                    <input 
+                                                        type="number" 
+                                                        value={baseFx} 
+                                                        min={1}
+                                                        max={100}
+                                                        step="0.01" 
+                                                        onChange={(e) => setBaseFx(parseFloat(e.target.value))} 
+                                                        className="w-full bg-transparent font-mono text-lg font-bold outline-none text-blue-700"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {activeTab === 'forex' ? (
                                             <>
-                                                <SliderControl label="FX Rate (PHP/USD)" value={fxRate} min={50} max={70} step={0.1} unit="₱" onChange={setFxRate} note={`Base Rate: ${CONSTANTS.BASE_FX.toFixed(4)}`}/>
+                                                <SliderControl label="FX Rate (PHP/USD)" value={fxRate} min={50} max={70} step={0.1} unit="₱" onChange={setFxRate} note={`Comparing against Base Rate: ${baseFx.toFixed(4)}`}/>
                                                 <div className={`p-3 rounded border text-xs flex gap-2 mb-6 ${isFloorActive ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-50 text-slate-500'}`}>
                                                     <Icons.AlertCircle size={16} className="shrink-0 mt-0.5" />
                                                     <p>{isFloorActive ? "Floor Price Active: Rate held at Bid Price." : "Tariff adjusting for depreciation."}</p>
@@ -890,18 +918,18 @@
 
                         {/* Heat Maps Section */}
                         {activeTab === 'forex' && (
-                            <ForexHeatMap calculateTariff={calculateForexTariff} />
+                            <ForexHeatMap calculateTariff={calculateForexTariff} baseFx={baseFx} />
                         )}
                         {activeTab === 'inflation' && (
                             <InflationHeatMap calculateTariff={calculateInflationTariff} inflationRate={inflationRate} />
                         )}
 
                         {/* References Section */}
-                        <ReferenceSection />
+                        <ReferenceSection baseFx={baseFx} />
 
                         <div className="text-center text-xs text-slate-400 pt-8 pb-4">
                             <p>Based on "Proposed Preliminary Green Energy Auction Reserve Price for Round 5 (GEAR5)" Document.</p>
-                            <p>Parameters: Base FX {CONSTANTS.BASE_FX} | 30% Local / 70% Forex Split.</p>
+                            <p>Parameters: Base FX {baseFx.toFixed(2)} | 30% Local / 70% Forex Split.</p>
                         </div>
 
                     </div>
