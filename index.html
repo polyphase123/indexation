@@ -454,18 +454,30 @@
                     else if (intensity < 0.4) bgClass = "bg-blue-100 text-blue-800";
                     else if (intensity < 0.6) bgClass = "bg-blue-200 text-blue-900";
                     else if (intensity < 0.8) bgClass = "bg-blue-300 text-blue-900";
-                    else bgClass = "bg-blue-400 text-white font-bold";
-                    if(bgClass.includes('text-white')) textClass = "text-white";
+                    else { bgClass = "bg-blue-500 text-white font-bold"; textClass = "text-white"; }
                 }
 
                 // Find column data to apply column-specific styling (like Base yellow column)
                 // Use fuzzy match for floats
                 const colData = columns.find(c => Math.abs(c.val - fx) < 0.001);
                 
-                if (colData?.type === 'base') { bgClass = "bg-yellow-50 border-x border-yellow-200"; textClass = "text-yellow-900 font-bold"; }
-                else if (colData?.type === 'bloomberg') bgClass = "bg-fuchsia-50 border-x border-fuchsia-100";
-                else if (colData?.type === 'neda') bgClass = "bg-emerald-50 border-x border-emerald-100";
-                else if (colData?.type === 'bsp') bgClass = "bg-indigo-50 border-x border-indigo-100";
+                // Explicitly set BOTH bgClass and textClass to ensure contrast overrides intensity settings
+                if (colData?.type === 'base') { 
+                    bgClass = "bg-yellow-100 border-x border-yellow-300"; 
+                    textClass = "text-yellow-900 font-bold"; 
+                }
+                else if (colData?.type === 'bloomberg') {
+                    bgClass = "bg-fuchsia-100 border-x border-fuchsia-200";
+                    textClass = "text-fuchsia-900 font-bold";
+                }
+                else if (colData?.type === 'neda') {
+                    bgClass = "bg-emerald-100 border-x border-emerald-200";
+                    textClass = "text-emerald-900 font-bold";
+                }
+                else if (colData?.type === 'bsp') {
+                    bgClass = "bg-indigo-100 border-x border-indigo-200";
+                    textClass = "text-indigo-900 font-bold";
+                }
 
                 return { value: tariff.toFixed(3), bgClass, textClass };
             };
