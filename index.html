@@ -637,7 +637,7 @@
                                             />
                                             <Tooltip 
                                                 contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                                formatter={(val, name) => [`₱ ${val.toFixed(4)}`, name === 'forexLine' ? 'Forex Option' : 'Inflation Option']}
+                                                formatter={(val, name) => [`₱ ${val.toFixed(4)}`, String(name).includes('Forex') ? 'Forex Option' : 'Inflation Option']}
                                                 labelFormatter={(label) => `Month ${label}`}
                                             />
                                             <ChartLegend verticalAlign="top" height={36}/>
